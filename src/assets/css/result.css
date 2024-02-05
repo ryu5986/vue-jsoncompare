@@ -1,0 +1,31 @@
+.missingObject{
+    background-color: #F08080;
+}
+
+.notContainsArr{
+    background-color: #FF8C00;
+}
+
+.notEqualType{
+    background-color: #F0E68C;
+}
+
+.notEqualArrLength{
+    background-color: #3CB371;	
+}
+
+.notEqualArrVal{
+    background-color: #1E90FF;
+}
+
+.notEqualVal{
+    background-color: #BA55D3;	
+}
+
+.clickElement{
+    background-color: aqua;
+}
+
+.removeBackground{
+    background-color: #FFFFFF;
+}
