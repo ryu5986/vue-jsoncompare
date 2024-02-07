@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 
 export const useJsonDataStore = defineStore('jsondata', () => {
 
+    const leftSaveData = ref<string>('');
+    const rightSaveData = ref<string>('');
     const leftMsgDataArr = ref<any[]>([]);
     const rightMsgDataArr = ref<any[]>([]);
     const leftSideDataArr = ref<any[]>([]);
@@ -31,6 +33,9 @@ export const useJsonDataStore = defineStore('jsondata', () => {
      * 리셋 함수
      */
     function $reset(){
+
+        leftSaveData.value = '';
+        rightSaveData.value = '';
 
         leftMsgDataArr.value = [];
         rightMsgDataArr.value = [];
@@ -85,6 +90,9 @@ export const useJsonDataStore = defineStore('jsondata', () => {
         checkHtmlInArr(rightData);
         
         totalCnt.value = countGroup.missObjectCnt + countGroup.notContainsArrValCnt + countGroup.notEqaulValCnt + countGroup.notEqualArrValCnt + countGroup.notEqualLengthArrCnt + countGroup.notEqualTypeCnt;
+
+        leftSaveData.value = leftData;
+        rightSaveData.value = rightData;
         
     }
 
@@ -311,5 +319,5 @@ export const useJsonDataStore = defineStore('jsondata', () => {
 
     }
 
-    return { setDataTogether, isEmpty, leftMsgDataArr, rightMsgDataArr, leftSideDataArr, rightSideDataArr, totalCnt, countGroup, $reset}
+    return { setDataTogether, isEmpty, leftMsgDataArr, rightMsgDataArr, leftSideDataArr, rightSideDataArr, totalCnt, countGroup, leftSaveData, rightSaveData, $reset}
 })

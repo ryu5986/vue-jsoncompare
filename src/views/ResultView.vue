@@ -5,6 +5,7 @@
     import { ref, onMounted} from 'vue';
     import type { Ref } from 'vue';
     import { useRouter } from 'vue-router';
+    import axios from 'axios';
 
     const jsonDataStore = useJsonDataStore();    
     const router = useRouter();
@@ -16,6 +17,10 @@
     const isEmpty: Function = jsonDataStore.isEmpty;
     const clickMsgData = ref<string>('');
     const alertFlag = ref<boolean>(false);
+    const leftData: string = jsonDataStore.leftSaveData;
+    const rightData: string = jsonDataStore.rightSaveData;
+    const snackbarFlag = ref<boolean>(false);
+    const snakbarMsg = ref<string>('');
    
     onMounted(() => {
       loadPageItems();
@@ -162,15 +167,58 @@
       router.push({ name : 'home'});
     }
 
+    /**
+     * json 데이터 저장하기
+     */
+    function saveJsonData(){
+
+        if(!isEmpty(leftData) && !isEmpty(rightData)){
+
+          axios.post('/api/record', {
+            leftData: leftData,
+            rightData: rightData
+          })
+          .then((res) => {
+
+              const data = res.data;
+              
+              snackbarFlag.value = true;
+              snakbarMsg.value = data.msg;
+
+          })
+          .catch((err) => {
+              snackbarFlag.value = true;
+              snakbarMsg.value = err;
+          })
+
+        }
+
+    }
+    
 </script>
 
 <template>
   <v-container>
       <LogoComponent/>
       <v-row class="text-center">
-        <v-col>
-          <v-btn color="success" class="mt-5" @click="goToHome">홈으로</v-btn>
+        <v-row>
+          <v-col>
+            <v-snackbar v-model="snackbarFlag" vertical>
+              <div class="text-subtitle-1 pb-2">저장 결과</div>
+              <p>{{ snakbarMsg }}</p>
+              <template v-slot:actions>
+                <v-btn color="indigo" variant="text" @click="snackbarFlag = false">Close</v-btn>
+              </template>
+            </v-snackbar>
+          </v-col>
+        </v-row>
+        <v-col cols="2">
+          <v-btn color="success" class="mt-5" @click="goToHome">홈으로</v-btn>         
         </v-col>
+        <v-col cols="2">
+          <v-btn color="info" class="mt-5" @click="saveJsonData">저장하기</v-btn>
+        </v-col>
+        <v-spacer></v-spacer>
       </v-row>
       <v-row>
         <v-col>
@@ -207,7 +255,7 @@
             <v-spacer></v-spacer><v-col cols="8"><v-card>{{ item }}</v-card></v-col><v-spacer></v-spacer>
           </v-row>
           <v-row>
-            <v-spacer></v-spacer><v-col cols="8"><v-alert v-model="alertFlag" type="info" closable icon="$info">클릭한 내용</v-alert></v-col><v-spacer></v-spacer>
+            <v-spacer></v-spacer><v-col cols="8"><v-alert v-model="alertFlag" type="info" icon="$info">클릭한 내용</v-alert></v-col><v-spacer></v-spacer>
           </v-row>
           <v-row>
             <v-spacer></v-spacer><v-col cols="8"><v-card>{{ clickMsgData }}</v-card></v-col><v-spacer></v-spacer>
