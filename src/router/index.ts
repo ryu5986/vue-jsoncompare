@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import ResultView from '../views/ResultView.vue'
+import WriteJsonInfo from '../views/WriteJsonInfo.vue'
+import CompareResult from '../views/CompareResult.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,12 +8,12 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView
+      component: WriteJsonInfo
     },
     {
-      path: '/result',
+      path: '/record',
       name: 'result',
-      component: ResultView
+      component: CompareResult
     }
   ]
 })

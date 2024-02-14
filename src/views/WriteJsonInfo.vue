@@ -2,7 +2,7 @@
 
 import { ref , onMounted } from 'vue'
 import { useRouter } from 'vue-router';
-import LogoComponent from '@/components/LogoComponent.vue'
+import Logo from '@/components/Logo.vue'
 import type { SelectItem , AlertObj} from '@/types/index'
 import { isEmpty, uploadFile, checkFileType } from '@/utils';
 import { getRecordList, getRecord, deleteRecord, getRecordByEncryptkey, insertRecord } from '@/service/index'
@@ -241,7 +241,7 @@ const deleteRecordData = async () => {
         </v-dialog>
       </v-col>
     </v-row>
-    <LogoComponent></LogoComponent>
+    <Logo></Logo>
     <v-row class="mt-5">
       <v-spacer></v-spacer>
       <v-col cols="8">

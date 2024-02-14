@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-    import LogoComponent from '@/components/LogoComponent.vue'
+    import Logo from '@/components/Logo.vue'
     import '@/assets/css/result.css'
     import { useJsonDataStore } from '@/stores/json-data'
     import { ref, onMounted} from 'vue';
@@ -182,7 +182,7 @@
 
 <template>
   <v-container>
-      <LogoComponent/>
+      <Logo/>
       <v-row class="text-center">
         <v-row>
           <v-col>

@@ -76,6 +76,7 @@ const makeMsgData = (mainObj: object | string, compareObj: object | string, side
     
         const val1: any = parseObj1[key];
         const val2: any = parseObj2[key];
+        console.log('val1', val1, 'val2', val2)
        
         if(typeof val1 === 'object' && val1 !== null && !Array.isArray(val1) && typeof val2 === 'object' && val2 !== null && !Array.isArray(val2)) {                               
           makeMsgData(val1, val2, sideType, dataArr);
@@ -199,18 +200,18 @@ export const makeSaveData = (msgDataArr: MsgDataObj[] ,jsonData: string) => {
    for(const str of dataArr){
         
         const useStr = str;
-        const emptyStr: string = useStr.replace(/\s/g, '#{empty}');
+        const emptyStr = useStr.replace(/\s/g, '#{empty}');
        
-        const findIdx: number = emptyStr.indexOf('"');
-        const emptyArea: string = emptyStr.substring(0, findIdx);
-        let convertText: string = '';
+        const findIdx = emptyStr.indexOf('"');
+        const emptyArea = emptyStr.substring(0, findIdx);
+        let convertText = '';
         sideDataDepth = (emptyArea.split('#{empty}').length -1) / 2;
 
         if(!isEmpty(beforeText)){
 
-            const idx: number = beforeText.indexOf('"');
-            const lastIdx: number = beforeText.indexOf('"', idx + 1);
-            const arrNm: string = beforeText.substring(idx + 1, lastIdx);
+            const idx = beforeText.indexOf('"');
+            const lastIdx = beforeText.indexOf('"', idx + 1);
+            const arrNm = beforeText.substring(idx + 1, lastIdx);
 
             convertText = sideDataDepth + arrNm + useStr.replace('"', '').trim();
             
