@@ -1,10 +1,13 @@
 <script lang="ts" setup>
 
-import { ref , computed, onMounted } from 'vue'
+import { ref , onMounted } from 'vue'
 import { useRouter } from 'vue-router';
-import { useJsonDataStore } from '@/stores/json-data'
 import LogoComponent from '@/components/LogoComponent.vue'
-import axios from 'axios';
+import type { SelectItem , AlertObj} from '@/types/index'
+import { isEmpty, uploadFile, checkFileType } from '@/utils';
+import { getRecordList, getRecord, deleteRecord, getRecordByEncryptkey, insertRecord } from '@/service/index'
+import { useJsonDataStore } from '@/stores/json-data'
+import * as CryptoJS from 'crypto-js';
 
 import sampleJson1 from '@/assets/json/sampleJson1.json';
 import sampleJson2 from '@/assets/json/sampleJson2.json';
@@ -12,17 +15,12 @@ import sampleJson2 from '@/assets/json/sampleJson2.json';
 const router = useRouter();
 const jsonDataStore = useJsonDataStore();
 
-const isEmpty: Function = jsonDataStore.isEmpty;
 const leftData = ref<string>('');
 const rightData = ref<string>('');
-const alertFlag = ref<boolean>(false);
-const alertMsg = ref<string>('');
-const fileSideType = ref<string>('');
-
-interface SelectItem {
-  subject: string,
-  jsonIdx: number
-}
+const alertObj = ref<AlertObj>({
+  flag : false,
+  msg : ''
+});
 
 const recordData = ref<SelectItem[]>([]);
 const selectedItem = ref<SelectItem | null>(null);
@@ -38,116 +36,68 @@ onMounted(() => {
 
 })
 
+/**
+ * DB 저장 기록 가져오기
+ */
 const getRecordDataList = async () => {
 
-    await axios.get('/api/record')
-    .then((res) => {
-
-        recordData.value  = [];
-
-        const data = res.data;
-
-        if(!isEmpty(data)){
-          
-          for(const item of data){
-
-              const recordObj: SelectItem = {
-                subject: item.subject as string,
-                jsonIdx: item.jsonIdx as number
-              };
-
-              recordData.value.push(recordObj);
-          }
-
-        }
-
-    })
-    .catch((err) => {
-      alertFlag.value = true;
-      alertMsg.value = err;
-    })
+    try {   
+      const data = await getRecordList();
+      recordData.value = data.result;
+    } catch (err) {
+      alertObj.value.flag = true;
+      alertObj.value.msg = err;
+    }
 
 }
 
 /**
- * 파일 업로드 버튼 눌렀을 때 이벤트
- * @param uploadSideType 왼쪽인지 오른쪽인지 구분하는 param
- */
-const uploadFile = (uploadSideType: string) => {
- 
-  const fileSpace: string = uploadSideType + 'File';
-  const sideFile: HTMLElement | null = document.getElementById(fileSpace);
-  fileSideType.value = uploadSideType;
-
-  sideFile?.click();
-
-}
-
-/**
- * 파일 확장자 체크 하는 이벤트
+ * 파일 읽어서 내용 표출
  * @param event 
  */
-const checkFileType = (event: Event) => {
+const readFileText = (event: Event, fileSideType: string) => {
 
   const fileInput = event.target as HTMLInputElement;
   const file = fileInput.files?.[0];
+  const alertObj = checkFileType(event, fileSideType, fileInput);
 
-      if ( file ) {
+  if(!alertObj.value.flag && file){
 
-        const fileName: string = file.name;
-        const fileSplitArr: string[] = fileName.split('.');
-        const fileExtension: string = fileSplitArr[fileSplitArr.length - 1].toLowerCase();
+    const reader = new FileReader();
 
-        if(fileExtension != 'json'){
+    reader.onload = (event) => {
 
-          alertFlag.value = true;
-          alertMsg.value = "json 파일 형식만 가능합니다.";
+      try {
+        
+        if(event?.target){
+          
+          const jsonString = event.target.result;
 
-          return;
-        }else{
+          if(typeof jsonString === 'string'){
 
-          const reader = new FileReader();
+            const jsonData = JSON.parse(jsonString);
+            const formatData = JSON.stringify(jsonData, null, 2);
 
-          reader.onload = (event) => {
-
-            try {
-               
-              if(event?.target){
-                
-                const jsonString = event.target.result;
-
-                if(typeof jsonString === 'string'){
-
-                  const jsonData = JSON.parse(jsonString);
-                  const formatData = JSON.stringify(jsonData, null, 2);
-
-                  const fileSideTypeStr: string = fileSideType.value;  
-                  
-                  if(fileSideTypeStr == 'left'){
-                    leftData.value = formatData;
-                  }else if(fileSideTypeStr == 'right'){
-                    rightData.value = formatData;
-                  }
-                  
-                  alertFlag.value = false;
-
-                }               
-  
-              }else{
-                throw new Error('파일을 읽어오는데 실패했습니다.');
-              }
-             
-            } catch (error) {
-              alertFlag.value = true;
-              alertMsg.value = 'Error parsing JSON: ${error}';
+            if(fileSideType == 'left'){
+              leftData.value = formatData;
+            }else if(fileSideType == 'right'){
+              rightData.value = formatData;
             }
-          };
+            
+          }               
 
-          reader.readAsText(file, 'utf-8');
-
+        }else{
+          throw new Error('파일을 읽어오는데 실패했습니다.');
         }
-
+      
+      } catch (error) {
+        alertObj.value.flag = true;
+        alertObj.value.msg = 'Error parsing JSON: ${error}';
       }
+    };
+
+    reader.readAsText(file, 'utf-8');
+  }
 
 }
 
@@ -162,18 +112,41 @@ const loadSampleData = () => {
 /**
  * 페이지 이동
  */
-const goToResult = () => {
+const goToResult = async () => {
   
-    const leftEmptyFlag: boolean = jsonDataStore.isEmpty(leftData.value);
-    const rightEmptyFlag: boolean = jsonDataStore.isEmpty(rightData.value);
+    const leftEmptyFlag: boolean = isEmpty(leftData.value);
+    const rightEmptyFlag: boolean = isEmpty(rightData.value);
    
     if(!leftEmptyFlag && !rightEmptyFlag){
-      jsonDataStore.$reset();
-      jsonDataStore.setDataTogether(leftData.value, rightData.value);
-      router.push({ name : 'result'});
+
+      const encryptKey = CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(leftData.value + rightData.value));
+
+      try {
+       
+        const data = await getRecordByEncryptkey(encryptKey);
+
+        if(!isEmpty(data.result)){
+          jsonDataStore.leftSideData = data.result.leftData;
+          jsonDataStore.rightSideData = data.result.rightData;
+        }else{
+          jsonDataStore.leftSideData = leftData.value;
+          jsonDataStore.rightSideData = rightData.value;
+          
+          const response = await insertRecord(leftData.value, rightData.value, encryptKey);
+
+          jsonDataStore.message = response.message;
+        }
+
+        router.push({ name : 'result'});
+       
+      } catch (error) {
+        alertObj.value.flag = true;
+        alertObj.value.msg = 'json data 내용을 확인해주세요.';
+      }
+
     }else{
-      alertFlag.value = true;
-      alertMsg.value = 'json data 내용을 확인해주세요.';
+      alertObj.value.flag = true;
+      alertObj.value.msg = 'json data 내용을 확인해주세요.';
     }
 }
 
@@ -181,29 +154,27 @@ const goToResult = () => {
  * 선택한 record 데이터 가져오기
  * @param value 
  */
-const onItemSelected = (value: SelectItem | null) => {
+const onItemSelected = async (value: SelectItem | null) => {
 
   const jsonIdx = value?.jsonIdx as number;
 
   if(!isEmpty(jsonIdx)){
 
-      axios.get('/api/record/' + jsonIdx)
-      .then((res) => {
+      try {
 
-        const data = res.data;
+        const data = await getRecord(jsonIdx);
 
         if(!isEmpty(data)){
-          leftData.value = data.leftData;
-          rightData.value = data.rightData;
+          leftData.value = data.result.leftData;
+          rightData.value = data.result.rightData;
           selectFlag.value = true;
           jsonIdxParam.value = jsonIdx;
         }
 
-      })
-      .catch((err) => {
-        alertFlag.value = true;
-        alertMsg.value = err;
-      })
+      } catch (err) {
+        alertObj.value.flag = true;
+        alertObj.value.msg = err;
+      }
 
   }
 
@@ -219,29 +190,27 @@ const openDeleteDialog = () => {
 /**
  * 데이터 삭제 하기
  */
-const deleteRecordData = () => {
+const deleteRecordData = async () => {
 
   if(!isEmpty(jsonIdxParam.value)){
 
-      axios.delete('/api/record/' + jsonIdxParam.value)
-      .then((res) => {
+    try {
 
-        const data = res.data;
+      const data = await deleteRecord(jsonIdxParam.value);
 
-        dialogFlag.value = false;
-        alertFlag.value = true;
-        alertMsg.value = data.msg;
-        getRecordDataList();
-        selectedItem.value = null;
-        leftData.value = '';
-        rightData.value = '';
-        jsonIdxParam.value = 0;
+      dialogFlag.value = false;
+      alertObj.value.flag = true;
+      alertObj.value.msg = data.message;
+      getRecordDataList();
+      selectedItem.value = null;
+      leftData.value = '';
+      rightData.value = '';
+      jsonIdxParam.value = 0;
 
-      })
-      .catch((err) => {
-        alertFlag.value = true;
-        alertMsg.value = err;
-      })
+    } catch (err) {
+      alertObj.value.flag = true;
+      alertObj.value.msg = err;
+    }
 
   }
 
@@ -253,7 +222,7 @@ const deleteRecordData = () => {
   <v-container>
     <v-row>
       <v-col>
-        <v-alert v-model="alertFlag" type="error" closable icon="$warning">{{ alertMsg }}</v-alert>
+        <v-alert v-model="alertObj.flag" type="error" closable icon="$warning">{{ alertObj.msg }}</v-alert>
         <v-dialog v-model="dialogFlag" max-width="500px">
           <v-card>
             <v-card-title class="headline">삭제 하시겠습니까?</v-card-title>
@@ -286,12 +255,12 @@ const deleteRecordData = () => {
    <v-row class="mt-5">
     <v-col md="6">
         <v-textarea rows="15" v-model="leftData"></v-textarea>
-        <v-file-input label="파일 선택" v-show="false" @change="checkFileType" id="leftFile"></v-file-input>
+        <v-file-input label="파일 선택" v-show="false" @change="readFileText($event, 'left')" id="leftFile"></v-file-input>
         <v-btn @click="uploadFile('left')" class="float-right">jsonFile</v-btn>
     </v-col>
     <v-col md="6">
         <v-textarea rows="15" v-model="rightData"></v-textarea>
-        <v-file-input label="파일 선택" v-show="false" @change="checkFileType" id="rightFile"></v-file-input>
+        <v-file-input label="파일 선택" v-show="false" @change="readFileText($event, 'right')" id="rightFile"></v-file-input>
         <v-btn @click="uploadFile('right')" class="float-right">jsonFile</v-btn>
     </v-col>
     </v-row>

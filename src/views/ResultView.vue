@@ -3,48 +3,57 @@
     import '@/assets/css/result.css'
     import { useJsonDataStore } from '@/stores/json-data'
     import { ref, onMounted} from 'vue';
-    import type { Ref } from 'vue';
     import { useRouter } from 'vue-router';
-    import axios from 'axios';
+    import { byTypeCntCalc, makeMsgDataArr, makeSaveData } from '@/features';
+    import { isEmpty } from '@/utils';
+    import type { CheckboxItem, MsgDataObj } from '@/types';
 
     const jsonDataStore = useJsonDataStore();    
     const router = useRouter();
 
-    const totalMsgDataArr: any[] = jsonDataStore.leftMsgDataArr.concat(jsonDataStore.rightMsgDataArr).sort((a, b) => b.type.localeCompare(a.type));       
+    const leftData = jsonDataStore.leftSideData;
+    const rightData = jsonDataStore.rightSideData;
+
+    const leftMsgDataArr = makeMsgDataArr(leftData, rightData, 'left');
+    const rightMsgDataArr = makeMsgDataArr(rightData, leftData, 'right');
+
+    const totalMsgDataArr = leftMsgDataArr.concat(rightMsgDataArr).sort((a: MsgDataObj, b: MsgDataObj) => b.type.localeCompare(a.type));       
+
+    const leftSaveDataArr = makeSaveData(leftMsgDataArr, leftData);
+    const rightSaveDataArr = makeSaveData(rightMsgDataArr, rightData);
+
+    const missObjectCnt = byTypeCntCalc(totalMsgDataArr, 'object');
+    const notContainsArrValCnt = byTypeCntCalc(totalMsgDataArr, 'contains');
+    const notEqualTypeCnt = byTypeCntCalc(totalMsgDataArr, 'type');
+    const notEqualLengthArrCnt = byTypeCntCalc(totalMsgDataArr, 'arrayLength');
+    const notEqualArrValCnt = byTypeCntCalc(totalMsgDataArr, 'arrayEqual');
+    const notEqaulValCnt = byTypeCntCalc(totalMsgDataArr, 'value');
+    const totalCnt = missObjectCnt + notContainsArrValCnt + notEqualTypeCnt + notEqualLengthArrCnt + notEqualArrValCnt + notEqaulValCnt;
+
     const msgItems = ref<string[]>(['']);
     const currentPage = ref<number>(1);
     const totalPages = ref<number>(totalMsgDataArr.length % 5 > 0 ?  Math.ceil(totalMsgDataArr.length / 5) : totalMsgDataArr.length);
-    const isEmpty: Function = jsonDataStore.isEmpty;
+  
     const clickMsgData = ref<string>('');
     const alertFlag = ref<boolean>(false);
-    const leftData: string = jsonDataStore.leftSaveData;
-    const rightData: string = jsonDataStore.rightSaveData;
+    
     const snackbarFlag = ref<boolean>(false);
     const snakbarMsg = ref<string>('');
    
     onMounted(() => {
       loadPageItems();
     });
-
-    /**
-     * 체크박스 아이템 인터페이스
-     */
-    interface CheckboxItem {
-        label: string,
-        isChecked: boolean,
-        classNm: string
-    }
     
     /**
      * 체크박스 아이템
      */
-    const checkboxItems: Ref<CheckboxItem[]> = ref([
-        {label: '서로 찾을 수 없는 오브젝트 수 : ' + jsonDataStore.countGroup.missObjectCnt, isChecked:true, classNm: 'missingObject'},
-        {label: '배열 안의 값이 존재 하지 않는 수 : ' + jsonDataStore.countGroup.notContainsArrValCnt, isChecked:true, classNm: 'notContainsArr'},
-        {label: '타입이 같지 않은 수 : ' + jsonDataStore.countGroup.notEqaulValCnt, isChecked:true, classNm: 'notEqualType'},
-        {label: '배열의 길이가 같지 않은 수 : ' + jsonDataStore.countGroup.notEqualLengthArrCnt, isChecked:true, classNm: 'notEqualArrLength'},
-        {label: '배열 안의 값이 같이 않은 수 : ' + jsonDataStore.countGroup.notEqualArrValCnt, isChecked:true, classNm: 'notEqualArrVal'},
-        {label: '값이 같지 않은 수 : ' + jsonDataStore.countGroup.notEqualTypeCnt, isChecked:true, classNm: 'notEqualVal'}
+    const checkboxItems = ref<CheckboxItem[]>([
+        {label: '서로 찾을 수 없는 오브젝트 수 : ' + missObjectCnt, isChecked:true, classNm: 'missingObject'},
+        {label: '배열 안의 값이 존재 하지 않는 수 : ' + notContainsArrValCnt, isChecked:true, classNm: 'notContainsArr'},
+        {label: '타입이 같지 않은 수 : ' + notEqaulValCnt, isChecked:true, classNm: 'notEqualType'},
+        {label: '배열의 길이가 같지 않은 수 : ' + notEqualLengthArrCnt, isChecked:true, classNm: 'notEqualArrLength'},
+        {label: '배열 안의 값이 같이 않은 수 : ' + notEqualArrValCnt, isChecked:true, classNm: 'notEqualArrVal'},
+        {label: '값이 같지 않은 수 : ' + notEqualTypeCnt, isChecked:true, classNm: 'notEqualVal'}
     ]);
 
     /**
@@ -52,7 +61,7 @@
      * @param className 
      * @param idx 
      */
-    function changeBackground(className: string, idx: number){
+    const changeBackground = (className: string, idx: number) => {
      
         checkboxItems.value[idx].isChecked = !checkboxItems.value[idx].isChecked;
 
@@ -87,7 +96,7 @@
     /**
      * 페이징 데이터 불러오기
      */
-    function loadPageItems(){
+    const loadPageItems = () =>{
       
       alertFlag.value = false;
       clickMsgData.value = '';
@@ -123,7 +132,7 @@
      * @param classNm 
      * @param event 
      */
-    function clickDataRow(classNm: string, event: Event){
+    const clickDataRow = (classNm: string, event: Event) => {
       
         if(!isEmpty(classNm)){
           
@@ -163,37 +172,11 @@
     /**
      * 홈으로
      */
-    function goToHome(){
+    const goToHome = () => {
       router.push({ name : 'home'});
     }
 
-    /**
-     * json 데이터 저장하기
-     */
-    function saveJsonData(){
-
-        if(!isEmpty(leftData) && !isEmpty(rightData)){
-
-          axios.post('/api/record', {
-            leftData: leftData,
-            rightData: rightData
-          })
-          .then((res) => {
-
-              const data = res.data;
-              
-              snackbarFlag.value = true;
-              snakbarMsg.value = data.msg;
-
-          })
-          .catch((err) => {
-              snackbarFlag.value = true;
-              snakbarMsg.value = err;
-          })
-
-        }
-
-    }
+   
     
 </script>
 
@@ -215,14 +198,11 @@
         <v-col cols="2">
           <v-btn color="success" class="mt-5" @click="goToHome">홈으로</v-btn>         
         </v-col>
-        <v-col cols="2">
-          <v-btn color="info" class="mt-5" @click="saveJsonData">저장하기</v-btn>
-        </v-col>
         <v-spacer></v-spacer>
       </v-row>
       <v-row>
         <v-col>
-          <p>{{ jsonDataStore.totalCnt }} 개의 다른점</p>
+          <p>{{ totalCnt }} 개의 다른점</p>
         </v-col>
       </v-row>
       <v-row>
@@ -232,14 +212,14 @@
       </v-row>
       <v-row>
         <v-col cols="4" class="sideArea">
-            <v-row v-for="(item, index) in jsonDataStore.leftSideDataArr" :key="index" :class="item.classNm" @click="clickDataRow(item.classNm, $event)">
+            <v-row v-for="(item, index) in leftSaveDataArr" :key="index" :class="item.classNm" @click="clickDataRow(item.classNm, $event)">
               <input type="hidden" :value="item.convertText" />
               <v-col cols="1">{{ index + 1 }}</v-col>
               <v-col cols="11"><pre>{{ item.text }}</pre></v-col>
             </v-row>
         </v-col>
         <v-col cols="4" class="sideArea">
-          <v-row v-for="(item, index) in jsonDataStore.rightSideDataArr" :key="index" :class="item.classNm" @click="clickDataRow(item.classNm, $event)">
+          <v-row v-for="(item, index) in rightSaveDataArr" :key="index" :class="item.classNm" @click="clickDataRow(item.classNm, $event)">
               <input type="hidden" :value="item.convertText" />
               <v-col cols="1">{{ index + 1 }}</v-col>
               <v-col cols="11"><pre>{{ item.text }}</pre></v-col>
