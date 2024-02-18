@@ -1,5 +1,4 @@
-import type { AlertObj } from "@/types";
-import { ref } from "vue";
+import { useDialogStore } from '@/stores/dialog'
 
  /**
      * 빈값 체크 하기
@@ -7,12 +6,19 @@ import { ref } from "vue";
      * @returns 
      */
  export function isEmpty(value: any): boolean {
+
     if (Array.isArray(value)) {
+
         return value.length === 0;
+
     } else if (typeof value === 'object' && value !== null) {
+
         return Object.keys(value).length === 0;
+
     } else {
+
         return value === null || value === undefined || value === '' || value === '{}' || value === '[]';
+        
     }
 }
 
@@ -35,15 +41,10 @@ export function uploadFile(uploadSideType: string){
  * @param fileSideType 
  * @returns 
  */
-export function checkFileType(event: Event, fileSideType: string, fileInput: HTMLInputElement){
+export function checkFileType(fileInput: HTMLInputElement){
 
+    const dialogStore = useDialogStore();
     const file = fileInput.files?.[0];
-    const alertObj = ref<AlertObj>(
-       {
-        flag: false,
-        msg: ''
-       }
-    );
 
     if(file){
 
@@ -53,16 +54,16 @@ export function checkFileType(event: Event, fileSideType: string, fileInput: HTM
 
         if(fileExtension != 'json'){
           
-          alertObj.value.flag = true;
-          alertObj.value.msg = "json 파일 형식만 가능합니다.";
+          dialogStore.dialogFlag = true;
+          dialogStore.dialogMessage = "json 파일 형식만 가능합니다.";
 
         }
 
     }else{
-        alertObj.value.flag = true;
-        alertObj.value.msg = "잘못된 접근 입니다.";
-    }
 
-    return alertObj;
+        dialogStore.dialogFlag = true;
+        dialogStore.dialogMessage = "잘못된 접근 입니다.";
+
+    }
 
 }

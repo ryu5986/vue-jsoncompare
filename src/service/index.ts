@@ -1,42 +1,5 @@
-import type { APIResponse, RecordData, SelectItem } from '@/types/index';
+import type { APIResponse, RecordData } from '@/types/index';
 import axios from 'axios'
-
-/**
- * 기록 리스트 가져오기
- * @returns 
- */
-export const getRecordList = async () => {
-    
-    const response = await axios.get<APIResponse<SelectItem[]>>('/api/record');
-    
-    return response.data;    
-}
-
-/**
- * 기록 한개 가져오기
- * @param jsonIdx 
- * @returns 
- */
-export const getRecord = async (jsonIdx: number) => {
-   
-    const response = await axios.get<APIResponse<RecordData>>('/api/record/' + jsonIdx);
-    
-    return response.data;   
-}
-
-/**
- * 기록 지우기
- * @param jsonIdx 
- * @returns 
- */
-export const deleteRecord = async (jsonIdx: number) => {
-
-    const response = await axios.delete<APIResponse<any>>('/api/record/' + jsonIdx);
-    
-    return response.data;       
-
-}
-
 
 /**
  * 암호화 키로 기록 한개 가져오기
@@ -45,7 +8,7 @@ export const deleteRecord = async (jsonIdx: number) => {
  */
 export const getRecordByEncryptkey = async (encryptKey: string) => {
    
-    const response = await axios.post<APIResponse<RecordData>>('/api/record/encryptkey', { encryptKey : encryptKey});
+    const response = await axios.get<APIResponse<RecordData>>('/api/record/' + encryptKey);
     
     return response.data;   
 }

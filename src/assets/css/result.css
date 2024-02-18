@@ -1,31 +1,42 @@
 .missingObject{
     background-color: #F08080;
+    filter: brightness(110%)
 }
 
 .notContainsArr{
     background-color: #FF8C00;
+    filter: brightness(110%)
 }
 
 .notEqualType{
     background-color: #F0E68C;
+    filter: brightness(110%)
 }
 
 .notEqualArrLength{
     background-color: #3CB371;	
+    filter: brightness(110%)
 }
 
 .notEqualArrVal{
     background-color: #1E90FF;
+    filter: brightness(110%)
 }
 
 .notEqualVal{
     background-color: #BA55D3;	
+    filter: brightness(110%)
 }
 
 .clickElement{
-    background-color: aqua;
+    background-color: #87CEFA;
 }
 
 .removeBackground{
     background-color: #FFFFFF;
+}
+
+.sideArea > div{
+    border: 1px solid rgba(252, 248, 248, 0.877);
+    border-radius: 10px;    
 }
