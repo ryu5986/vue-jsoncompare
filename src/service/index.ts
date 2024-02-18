@@ -12,7 +12,6 @@ const client: Axios = axios.create({
 
 client.interceptors.request.use(
     (config) => {
-        config.headers.authorization = 'token';
         config.headers['Access-Control-Allow-Origin'] = config.baseURL;
         return config;
     }
