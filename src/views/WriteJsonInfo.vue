@@ -1,21 +1,19 @@
 <script lang="ts" setup>
 
-import { ref } from 'vue'
-import { useRouter } from 'vue-router';
-import type { CompareDataGroup} from '@/types/index'
-import { isEmpty, uploadFile, checkFileType } from '@/utils';
-import { getRecordByEncryptkey, insertRecord } from '@/service/index'
-import { useJsonDataStore } from '@/stores/jsonData'
-import { useDialogStore } from '@/stores/dialog'
+import _ from 'lodash';
 import * as CryptoJS from 'crypto-js';
-import { CompareData } from '@/types/compareData';
-import { reactive } from 'vue';
+import { ref } from 'vue'
+import { inject } from 'vue';
+import { useRouter } from 'vue-router';
+import { uploadFile } from '@/utils';
+import { useJsonDataStore } from '@/stores/jsonData'
+import { getCompareResultByEncryptkey, insertCompareResult } from '@/service/index'
 import sampleJson1 from '@/assets/json/sampleJson1.json';
 import sampleJson2 from '@/assets/json/sampleJson2.json';
 
 const router = useRouter();
 const jsonDataStore = useJsonDataStore();
-const dialogStore = useDialogStore();
+const openDialog = inject<Function>('openDialog')!!;
 
 const leftData = ref<string>('');
 const rightData = ref<string>('');
@@ -29,9 +27,18 @@ const readFileText = (event: Event, fileSideType: string) => {
   const fileInput = event.target as HTMLInputElement;
   const file = fileInput.files?.[0];
 
-  checkFileType(fileInput);
+  if(file){
 
-  if(!dialogStore.dialogFlag && file){
+    const fileName: string = file.name;
+    const fileSplitArr: string[] = fileName.split('.');
+    const fileExtension: string = fileSplitArr[fileSplitArr.length - 1].toLowerCase();
+
+    if(fileExtension != 'json'){
+      
+      openDialog('json 파일 형식만 가능합니다.');
+      return;
+
+    }
 
     const reader = new FileReader();
 
@@ -68,9 +75,8 @@ const readFileText = (event: Event, fileSideType: string) => {
       
       } catch (error) {
 
-        dialogStore.dialogFlag = true;
-        dialogStore.dialogMessage = 'Error parsing JSON: ${error}';
-        
+        openDialog('Error parsing JSON: ${error}')
+
       }
 
     };
@@ -91,115 +97,74 @@ const loadSampleData = () => {
 }
 
 /**
- * 페이지 이동
+ * 페이지 이동전 값 비교
  */
-const goToResult = async () => {
+const clickCompareButton = async () => {
   
-    const leftEmptyFlag: boolean = isEmpty(leftData.value);
-    const rightEmptyFlag: boolean = isEmpty(rightData.value);
+  const leftEmptyFlag: boolean = _.isEmpty(leftData.value);
+  const rightEmptyFlag: boolean = _.isEmpty(rightData.value);
    
-    if(!leftEmptyFlag && !rightEmptyFlag){
+  if(!leftEmptyFlag && !rightEmptyFlag){
 
-      const encryptKey = CryptoJS.enc.Hex.stringify(CryptoJS.SHA256(leftData.value + rightData.value));
+    const encryptKey = CryptoJS.enc.Hex.stringify(CryptoJS.SHA256(leftData.value + rightData.value));
 
-      try {
-       
-        let leftJsonData = '';
-        let rightJsonData = '';
+    try {     
+     
+      jsonDataStore.encryptKey = encryptKey;
+      const saveObject = jsonDataStore.findEncryptKey;
+      
+      if(!_.isEmpty(saveObject)){
 
-        const saveEncryptKey = jsonDataStore.encryptKey;
+        goToResult(encryptKey);
 
-        if(!isEmpty(saveEncryptKey)){
+      }else{
 
-          if(encryptKey !== saveEncryptKey){
+        const compareResult = await getCompareResultByEncryptkey(encryptKey);
+      
+        if(!_.isEmpty(compareResult.result)){
             
-            const data = await getRecordByEncryptkey(encryptKey);
+          goToResult(encryptKey);
 
-            if(!isEmpty(data.result)){
-
-              leftJsonData = data.result.leftData;
-              rightJsonData = data.result.rightData;
-
-            }else{
-
-              leftJsonData = leftData.value;
-              rightJsonData = rightData.value;
-              
-              await insertRecord(leftData.value, rightData.value, encryptKey);
-
-            }
-
-            makeCompareDataGroup(leftJsonData, rightJsonData, encryptKey);
-
-          }
-          
         }else{
 
-          const data = await getRecordByEncryptkey(encryptKey);
+          const result = await insertCompareResult(leftData.value, rightData.value, encryptKey);
 
-          if(!isEmpty(data.result)){
-
-            leftJsonData = data.result.leftData;
-            rightJsonData = data.result.rightData;
+          if(_.isEqual(result.code, '00')){
+            
+            jsonDataStore.saveData.leftData = leftData.value;
+            jsonDataStore.saveData.rightData = rightData.value;
+            goToResult(encryptKey);
 
           }else{
-
-            leftJsonData = leftData.value;
-            rightJsonData = rightData.value;
             
-            await insertRecord(leftData.value, rightData.value, encryptKey);
+            openDialog(result.message);
 
           }
-
-          makeCompareDataGroup(leftJsonData, rightJsonData, encryptKey);
 
         }
 
-        router.push({ name : 'result'});
-       
-      } catch (err) {
-        
-        dialogStore.dialogFlag = true;
-        dialogStore.dialogMessage = err;
-
       }
 
-    }else{
-
-      dialogStore.dialogFlag = true;
-      dialogStore.dialogMessage = 'json data 내용을 확인해주세요.';
+    } catch (err) {
+      
+      openDialog(err);
 
     }
+
+  }else{
+
+    openDialog('json data 내용을 확인해주세요.');
+
+  }
 }
 
 /**
- * 스토어에 저장
- * @param leftJsonDataParam 
- * @param rightJsonDataParam 
- * @param encryptKeyParam 
+ * 결과 페이지 가기
+ * @param paramKey 
  */
-const makeCompareDataGroup = (leftJsonDataParam: string, rightJsonDataParam: string, encryptKeyParam: string) => {  
-  
-  const compareData = new CompareData(leftJsonDataParam, rightJsonDataParam);
-  
-  jsonDataStore.encryptKey = encryptKeyParam;
-  jsonDataStore.compareDataGroup = reactive<CompareDataGroup>({
-    
-    leftMessageDataArray: compareData.leftMessageDataArray,
-    rightMessageDataArray: compareData.rightMessageDataArray,
-    totalMessageDataArray: compareData.totalMessageDataArray,
-    leftSaveDataArray: compareData.leftSaveDataArray,
-    rightSaveDataArray: compareData.rightSaveDataArray,
+const goToResult = (paramKey: string) => {
 
-    missObjectCnt: compareData.missObjectCnt,
-    notContainsArrValCnt: compareData.notContainsArrValCnt,
-    notEqualTypeCnt: compareData.notEqualTypeCnt,
-    notEqualLengthArrCnt: compareData.notEqualLengthArrCnt,
-    notEqualArrValCnt: compareData.notEqualArrValCnt,
-    notEqaulValCnt: compareData.notEqaulValCnt,
-    totalCnt: compareData.totalCnt
-  
-  });
+  router.push({ name: 'result', query: { key: paramKey }});
 
 }
 
@@ -211,7 +176,7 @@ const makeCompareDataGroup = (leftJsonDataParam: string, rightJsonDataParam: str
       <v-spacer></v-spacer>
       <v-col cols="4">
         <v-btn color="black" class="mr-2" @click="loadSampleData">try some sample data</v-btn>
-        <v-btn color="blue" @click="goToResult">Compare</v-btn>
+        <v-btn color="blue" @click="clickCompareButton">Compare</v-btn>
       </v-col>
     </v-row>
    <v-row>

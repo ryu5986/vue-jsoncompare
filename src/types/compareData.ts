@@ -1,4 +1,4 @@
-import { isEmpty } from "@/utils";
+import _ from 'lodash'
 import { MessageDataItem, SaveDataItem } from ".";
 
 export class CompareData{
@@ -95,7 +95,7 @@ export class CompareData{
 
         let cnt = 0;
 
-        if(!isEmpty(dataArr)){
+        if(!_.isEmpty(dataArr)){
 
             for(const data of dataArr){
 
@@ -110,7 +110,7 @@ export class CompareData{
             }
 
         }
-
+        console.log(classifyType, cnt)
         return cnt;
 
     }
@@ -288,7 +288,7 @@ export class CompareData{
             
             this.sideDataDepth = (emptyArea.split('#{empty}').length -1) / 2;
     
-            if(!isEmpty(beforeText)){
+            if(!_.isEmpty(beforeText)){
     
                 const idx = beforeText.indexOf('"');
                 const lastIdx = beforeText.indexOf('"', idx + 1);
@@ -318,7 +318,7 @@ export class CompareData{
 
             }
     
-            if(!isEmpty(keyStrArr)){
+            if(!_.isEmpty(keyStrArr)){
                 
                 for(let i = 0; i < keyStrArr.length; i++){
                     

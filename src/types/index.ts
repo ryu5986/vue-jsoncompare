@@ -4,15 +4,21 @@ export interface CheckboxItem{
   classNm: string;
 }
 
-export interface RecordData{
-  jsonIdx: number;
-  subject: string;
+export interface CompareResultData{
+  resultIdx: number;
+  leftData: string;
+  rightData: string;
+  encryptKey: string;
+}
+
+export interface SaveCompareData{
   leftData: string;
   rightData: string;
 }
 
 export interface APIResponse<T>{
   message: string;
+  code: string;
   result: T;
 }
 

@@ -1,28 +1,35 @@
-import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { CompareDataGroup } from '@/types';
+import type { SaveCompareData } from '@/types';
+import { computed, reactive, ref, watch } from 'vue';
+import _ from 'lodash';
 
 export const useJsonDataStore = defineStore('jsondata', () => {
 
-    const leftSideData = ref<string>('');
-    const rightSideData = ref<string>('');
     const encryptKey = ref<string>('');
+    const encryptKeyMap = ref<Map<string, SaveCompareData>>(new Map());
 
-    const compareDataGroup = reactive<CompareDataGroup>({
-        leftMessageDataArray: [],
-        rightMessageDataArray: [],
-        totalMessageDataArray: [],
-        leftSaveDataArray: [],
-        rightSaveDataArray: [],
-        missObjectCnt: 0,
-        notContainsArrValCnt: 0,
-        notEqualTypeCnt: 0,
-        notEqualLengthArrCnt: 0,
-        notEqualArrValCnt: 0,
-        notEqaulValCnt: 0,
-        totalCnt: 0
+    const saveData = reactive<SaveCompareData>({
+
+        leftData: '',
+        rightData: ''
+        
     });
+    
+    const findEncryptKey = computed(() => {
 
+        return encryptKeyMap.value.get(encryptKey.value);
 
-    return { leftSideData, rightSideData, encryptKey, compareDataGroup }
+    })
+
+    watch(saveData, (newValue, oldValue) => {
+
+        if(!_.isEqual(newValue, oldValue)){
+
+            encryptKeyMap.value.set(encryptKey.value, newValue);
+
+        }
+
+    })
+
+    return { saveData, encryptKey, encryptKeyMap, findEncryptKey }
 })

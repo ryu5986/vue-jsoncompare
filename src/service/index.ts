@@ -1,10 +1,10 @@
-import type { APIResponse, RecordData } from '@/types/index';
+import type { APIResponse, CompareResultData } from '@/types/index';
 import axios, {Axios} from 'axios'
 
 const isDevelopment = import.meta.env.DEV
 
 const client: Axios = axios.create({
-    baseURL: isDevelopment ? 'http://localhost:8080/' : 'not yet',
+    baseURL: isDevelopment ? 'http://localhost:8080/' : 'http://43.203.76.98:8080/',
     headers: {
         'Content-Type': 'application/json'
     }    
@@ -22,9 +22,9 @@ client.interceptors.request.use(
  * @param jsonIdx 
  * @returns 
  */
-export const getRecordByEncryptkey = async (encryptKey: string) => {
+export const getCompareResultByEncryptkey = async (encryptKey: string) => {
    
-    const response = await client.get<APIResponse<RecordData>>('/api/record/' + encryptKey);
+    const response = await client.get<APIResponse<CompareResultData>>('/api/compareresult/' + encryptKey);
     
     return response.data;   
 }
@@ -36,9 +36,9 @@ export const getRecordByEncryptkey = async (encryptKey: string) => {
  * @param encryptKey 
  * @returns 
  */
-export const insertRecord = async (leftData: string, rightData: string, encryptKey: string) => {
+export const insertCompareResult = async (leftData: string, rightData: string, encryptKey: string) => {
     
-    const response = await  client.post<APIResponse<any>>('/api/record', {
+    const response = await  client.post<APIResponse<any>>('/api/compareresult', {
         encryptKey: encryptKey,
         leftData: leftData,
         rightData: rightData

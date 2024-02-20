@@ -1,11 +1,15 @@
 <script lang="ts" setup>
-    import { useDialogStore } from '@/stores/dialog'
+   
+    const props = defineProps({
+        openFlag: Boolean,
+        openMessage: String,
+        closeDialog: Function
+    })
 
-    const dialogStore = useDialogStore();
 </script>
 
 <template>
-    <v-dialog v-model="dialogStore.dialogFlag" scrollable width="auto" height="auto">
-        <v-alert type="error" closable @click:close="dialogStore.dialogFlag = false">{{ dialogStore.dialogMessage }}</v-alert>
+    <v-dialog v-model="props.openFlag" scrollable width="auto" height="auto">
+        <v-alert type="error" closable @click:close="props.closeDialog">{{ props.openMessage }}</v-alert>
     </v-dialog>
 </template>

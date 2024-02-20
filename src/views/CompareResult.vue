@@ -1,196 +1,262 @@
 <script lang="ts" setup>
-    import '@/assets/css/result.css'
-    import { useJsonDataStore } from '@/stores/jsonData'
-    import { ref, onMounted} from 'vue';
-    import { useRouter } from 'vue-router';
-    import { isEmpty } from '@/utils';
-    import type { CheckboxItem } from '@/types';
+  import '@/assets/css/result.css'
+  import _ from 'lodash';
+  import { ref } from 'vue';
+  import { inject } from 'vue';
+  import { CompareData } from '@/types/compareData';
+  import { useJsonDataStore } from '@/stores/jsonData'
+  import { useRouter, useRoute } from 'vue-router';
+  import { getCompareResultByEncryptkey } from '@/service';
+  import type { SaveDataItem, CheckboxItem, MessageDataItem } from '@/types';
 
-    onMounted(() => {
-      loadPageItems();
-    });
+  const openDialog = inject<Function>('openDialog')!!;
+  const route = useRoute();
+  const router = useRouter();
+  const paramKey = route.query.key as string;
 
-    const router = useRouter();
-    const jsonDataStore = useJsonDataStore();    
-    const compareDataGroup = jsonDataStore.compareDataGroup;
+  const messageItems = ref<string[]>([]);
+  const currentPage = ref<number>(1);
+  const totalPages = ref<number>(0);
 
-    const totalMsgDataArr = compareDataGroup.totalMessageDataArray;
+  const clickFlag = ref<boolean>(false);    
+  const clickMsgData = ref<string>('');
 
-    const leftSaveDataArr = compareDataGroup.leftSaveDataArray;
-    const rightSaveDataArr = compareDataGroup.rightSaveDataArray;
+  const jsonDataStore = useJsonDataStore();
+  jsonDataStore.encryptKey = paramKey;
+  const saveObject = jsonDataStore.findEncryptKey;
 
-    const missObjectCnt = compareDataGroup.missObjectCnt;
-    const notContainsArrValCnt = compareDataGroup.notContainsArrValCnt;
-    const notEqualTypeCnt = compareDataGroup.notEqualTypeCnt;
-    const notEqualLengthArrCnt = compareDataGroup.notEqualLengthArrCnt;
-    const notEqualArrValCnt = compareDataGroup.notEqualArrValCnt;
-    const notEqaulValCnt = compareDataGroup.notEqaulValCnt;
-    const totalCnt = compareDataGroup.totalCnt;
+  const totalMsgDataArr = ref<MessageDataItem[]>([]);
+  const leftSaveDataArr = ref<SaveDataItem[]>([]);
+  const rightSaveDataArr = ref<SaveDataItem[]>([]);
 
-    const messageItems = ref<string[]>(['']);
-    const currentPage = ref<number>(1);
-    const totalPages = ref<number>(totalMsgDataArr.length % 5 > 0 ?  Math.ceil(totalMsgDataArr.length / 5) : totalMsgDataArr.length);
+  const totalCnt = ref<number>(0);
+
+  const checkboxItems = ref<CheckboxItem[]>([]);
+
+  /**
+   * 랜더링 세팅하기
+   * @param existFlag 
+   */
+  const preparingForRendering = async (existFlag: boolean) => {
+
+    let leftData = '';
+    let rightData = '';
+
+    if(existFlag){
+
+      leftData = saveObject?.leftData as string;
+      rightData = saveObject?.rightData as string;
+
+    }else{
+
+      const compareResult = await getCompareResultByEncryptkey(paramKey);
+
+      if(!_.isEmpty(compareResult.result)){
+        
+        const data = compareResult.result;
+        leftData = data.leftData;
+        rightData = data.rightData;
   
-    const clickFlag = ref<boolean>(false);    
-    const clickMsgData = ref<string>('');
-
-    /**
-     * 체크박스 아이템
-     */
-    const checkboxItems = ref<CheckboxItem[]>([
-        {label: 'Objects that can\'t find each other : ' + missObjectCnt, isChecked:true, classNm: 'missingObject'},
-        {label: 'The value in the array does not exist : ' + notContainsArrValCnt, isChecked:true, classNm: 'notContainsArr'},
-        {label: 'not of the same type : ' + notEqaulValCnt, isChecked:true, classNm: 'notEqualType'},
-        {label: 'Arrays are of unequal length : ' + notEqualLengthArrCnt, isChecked:true, classNm: 'notEqualArrLength'},
-        {label: 'The values ​​in the array are not the same : ' + notEqualArrValCnt, isChecked:true, classNm: 'notEqualArrVal'},
-        {label: 'not the same value : ' + notEqualTypeCnt, isChecked:true, classNm: 'notEqualVal'}
-    ]);
-
-    /**
-     * 체크박스 클릭했을 때 이벤트
-     * @param className 
-     * @param idx 
-     */
-    const changeBackground = (className: string, idx: number) => {
-     
-      checkboxItems.value[idx].isChecked = !checkboxItems.value[idx].isChecked;
-
-      const chkFlag: boolean = checkboxItems.value[idx].isChecked;
-      const classGroup = document.querySelectorAll('.' + className);
-      const newClassName: string = 'removeBackground';
-      
-      if(chkFlag){            
-
-        classGroup.forEach((element) => {
-
-          element.classList.remove(newClassName);
-
-        })
-
       }else{
-
-        classGroup.forEach((element) => {
-
-          element.classList.add(newClassName);
-
-        })
-        
+  
+        openDialog('잘못된 접근입니다.');
+        goToHome();
+  
       }
 
     }
 
-    /**
-     * 페이징 처리
-     * @param newPage 
-     */
-    const changePage = (newPage: number) => {
-       
-        currentPage.value = newPage;
-        loadPageItems();
-        
-    }
+    setDataValues(leftData, rightData);
 
-    /**
-     * 페이징 데이터 불러오기
-     */
-    const loadPageItems = () =>{
+  }
+
+  /**
+   * 데이터 값 세팅하기
+   * @param leftData 
+   * @param rightData 
+   */
+  const setDataValues = (leftData: string, rightData: string) => {
+
+    const compareData = new CompareData(leftData, rightData);
+
+    totalMsgDataArr.value = compareData.totalMessageDataArray;
+    leftSaveDataArr.value = compareData.leftSaveDataArray;
+    rightSaveDataArr.value = compareData.rightSaveDataArray;
+
+    checkboxItems.value.push({label: 'Objects that can\'t find each other : ' + compareData.missObjectCnt, isChecked:true, classNm: 'missingObject'});
+    checkboxItems.value.push({label: 'The value in the array does not exist : ' +  compareData.notContainsArrValCnt, isChecked:true, classNm: 'notContainsArr'});
+    checkboxItems.value.push({label: 'not of the same type : ' + compareData.notEqualTypeCnt, isChecked:true, classNm: 'notEqualType'});
+    checkboxItems.value.push({label: 'Arrays are of unequal length : ' + compareData.notEqualLengthArrCnt, isChecked:true, classNm: 'notEqualArrLength'});
+    checkboxItems.value.push({label: 'The values ​​in the array are not the same : ' + compareData.notEqualArrValCnt, isChecked:true, classNm: 'notEqualArrVal'});
+    checkboxItems.value.push({label: 'not the same value : ' + compareData.notEqaulValCnt, isChecked:true, classNm: 'notEqualVal'});
+
+    totalCnt.value = compareData.totalCnt;
+    totalPages.value = totalMsgDataArr.value.length % 5 > 0 ?  Math.ceil(totalMsgDataArr.value.length / 5) : totalMsgDataArr.value.length;
+
+    changePage(currentPage.value);
+
+  }
+  
+  /**
+   * 페이지 데이터 세팅하기
+   */
+  if(!_.isEmpty(saveObject)){
+   
+    preparingForRendering(true);
+
+  }else{
+
+    preparingForRendering(false);
+
+  }
+
+  /**
+   * 체크박스 클릭했을 때 이벤트
+   * @param className 
+   * @param idx 
+   */
+  const changeBackground = (className: string, idx: number) => {
+    
+    checkboxItems.value[idx].isChecked = !checkboxItems.value[idx].isChecked;
+
+    const chkFlag: boolean = checkboxItems.value[idx].isChecked;
+    const classGroup = document.querySelectorAll('.' + className);
+    const newClassName: string = 'removeBackground';
+    
+    if(chkFlag){            
+
+      classGroup.forEach((element) => {
+
+        element.classList.remove(newClassName);
+
+      })
+
+    }else{
+
+      classGroup.forEach((element) => {
+
+        element.classList.add(newClassName);
+
+      })
       
-      clickFlag.value = false;
-      clickMsgData.value = '';
+    }
 
-      const pageSize = 5;
+  }
 
-      const startIdx = (currentPage.value - 1) * pageSize;
-      const endIdx = Math.min(startIdx + pageSize, totalPages.value * pageSize);
-      messageItems.value = [];
+  /**
+   * 페이징 처리
+   * @param newPage 
+   */
+  const changePage = (newPage: number) => {
+      
+      currentPage.value = newPage;
+      loadPageItems();
+      
+  }
 
-      const sliceMsgDataArr = totalMsgDataArr.slice(startIdx, endIdx);
-      const hiddens = document.querySelectorAll('input[type="hidden"]'); 
+  /**
+   * 페이징 데이터 불러오기
+   */
+  const loadPageItems = () =>{
+    
+    clickFlag.value = false;
+    clickMsgData.value = '';
 
-      for(const removeHidden of hiddens){
+    const pageSize = 5;
 
-        removeHidden.parentElement?.classList.remove('clickElement');
+    const startIdx = (currentPage.value - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, totalPages.value * pageSize);
+    messageItems.value = [];
+
+    const sliceMsgDataArr = totalMsgDataArr.value.slice(startIdx, endIdx);
+    const hiddens = document.querySelectorAll('input[type="hidden"]'); 
+
+    for(const removeHidden of hiddens){
+
+      removeHidden.parentElement?.classList.remove('clickElement');
+
+    }
+
+    for(const item of sliceMsgDataArr){
+
+      messageItems.value.push(item.message);
+
+      for (const hidden of hiddens) {
+
+        if (hidden instanceof HTMLInputElement && hidden.value.indexOf(item.keyword) != -1) {
+
+            hidden.parentElement?.classList.add('clickElement');
+
+        }
+        
+      }
+
+    }
+
+  }
+
+  /**
+   * row 클릭 했을 때 이벤트
+   * @param classNm 
+   * @param event 
+   */
+  const clickDataRow = (classNm: string, event: Event) => {
+    
+    if(!_.isEmpty(classNm)){
+      
+      const classGroup = document.querySelectorAll('.clickElement'); 
+
+      for(const classItem of classGroup){
+
+        classItem.classList.remove('clickElement');
 
       }
 
-      for(const item of sliceMsgDataArr){
+      const clickElement = event.target as HTMLElement;
+      const vRowElement = clickElement.closest('.v-row') as HTMLElement | null;
+      
+      if (vRowElement) {
 
-        messageItems.value.push(item.message);
+        vRowElement.classList.add('clickElement');
 
-        for (const hidden of hiddens) {
-
-          if (hidden instanceof HTMLInputElement && hidden.value.indexOf(item.keyword) != -1) {
-
-              hidden.parentElement?.classList.add('clickElement');
-
-          }
+        const hiddenElement = vRowElement?.querySelector('input[type="hidden"]') as HTMLElement | null;
           
-        }
+        if (hiddenElement instanceof HTMLInputElement && !_.isEmpty(hiddenElement.value)) {
 
-      }
+          for(const msgData of totalMsgDataArr.value){
 
-    }
+            if(hiddenElement.value.indexOf(msgData.keyword) != -1){
 
-    /**
-     * row 클릭 했을 때 이벤트
-     * @param classNm 
-     * @param event 
-     */
-    const clickDataRow = (classNm: string, event: Event) => {
-      
-      if(!isEmpty(classNm)){
-        
-        const classGroup = document.querySelectorAll('.clickElement'); 
+              clickFlag.value = true;
+              clickMsgData.value = msgData.message;
 
-        for(const classItem of classGroup){
-
-          classItem.classList.remove('clickElement');
-
-        }
-
-        const clickElement = event.target as HTMLElement;
-        const vRowElement = clickElement.closest('.v-row') as HTMLElement | null;
-        
-        if (vRowElement) {
-
-          vRowElement.classList.add('clickElement');
-
-          const hiddenElement = vRowElement?.querySelector('input[type="hidden"]') as HTMLElement | null;
-            
-          if (hiddenElement instanceof HTMLInputElement && !isEmpty(hiddenElement.value)) {
-
-            for(const msgData of totalMsgDataArr){
-
-              if(hiddenElement.value.indexOf(msgData.keyword) != -1){
-
-                clickFlag.value = true;
-                clickMsgData.value = msgData.message;
-
-                window.scrollTo({
-                  top: 100,
-                  behavior: 'smooth'
-                });
-                    
-              }
-
+              window.scrollTo({
+                top: 100,
+                behavior: 'smooth'
+              });
+                  
             }
 
           }
 
         }
-        
+
       }
+      
     }
+  }
 
-    /**
-     * 홈으로
-     */
-    const goToHome = () => {
-      router.push({ name : 'home'});
-    }
+  /**
+   * 홈으로
+   */
+  function goToHome(){
 
-   
-    
+    router.push({ name : 'home'});
+
+  }
+
+  
+  
 </script>
 
 <template>
