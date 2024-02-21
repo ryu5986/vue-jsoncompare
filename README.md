@@ -59,9 +59,9 @@ front-end 쪽으로 진로를 결정하게 되었습니다.
 
 ### Flow Chart
 ---
-- 처음 페이지 접속하여 진행 flow chart
+처음 페이지 접속하여 진행 flow chart
 ![flowchart1](https://github.com/ryu5986/vue-jsoncompare/assets/66866506/bae6f170-212e-4362-9e37-21281cad3717)
-- 결과 페이지 flow chart
+결과 페이지 flow chart
 ![flowchart2](https://github.com/ryu5986/vue-jsoncompare/assets/66866506/b1bccc51-71b4-4442-b167-a8576e85d5f9)
 
   
