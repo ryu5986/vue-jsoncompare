@@ -4,6 +4,7 @@
 ### 프로젝트 소개
 ---
 JSON 데이터를 비교하여 서로 다른점의 내용과 수를 표기하고 그중에서도 원하는 형식만 볼 수 있게 만든 프로젝트입니다.
+(Back-end 내용은 <https://github.com/ryu5986/jsoncompare-rest-api> 의 README 확인 부탁드리겠습니다. ^^)
 
 ### 개발 기간
 ---
@@ -20,13 +21,11 @@ front-end 쪽으로 진로를 결정하게 되었습니다.
 이과정에서 저는 기존에 늘 사용하던 JQuery, JavaScript, JSP, Thymeleaf 보다는 좀 더 Modern 한 개발언어나 방식이 필요하다고 느껴 미니 프로젝트를 만들어야 겠다고 생각했습니다.
 어떤 프로젝트를 할 지 고민 하던 중 평소 자주 이용하던 JSON 비교 사이트 <https://www.jsondiff.com/> 가 떠오르기도 하고 비슷하게 만들면서 추가적으로 DB 연결도 해보면 좋을 것 같아 진행 하게 되었습니다.
 
-### 기술 스텍
+### 기술 스텍(Frond-end)
 ---
-* IDE: VSCode, Intellij, DBeaver
-* Framework: Vue, SpringBoot
-* Lang: TypeScript, JAVA 17
-* DB: MariaDB
-* ORM: Hibernate
+* IDE: VSCode
+* Framework: Vue
+* Lang: TypeScript
 
 ### 프로젝트 주요 기능
 ---
@@ -53,11 +52,6 @@ front-end 쪽으로 진로를 결정하게 되었습니다.
 
 6. TypeScript 사용 이유
    - 기존 javascript 만으로 작업할 때는 타입이 명시적이지 않아 가독성이 떨어지고 타입을 추론해야 하는 면에서 다소 불편함이 있었으나 TypeScript 는 보다 명시적이고 JAVA 에서 활용했던 것처럼 제네릭도 표현할 수 있어 확실히 직관적으로 알 수 있는 장점이 있어 사용하였습니다.
-
-7. Back-end 구성
-   - 우선 Back-end 부분은 Rest-API 구성으로 진행하였으며 기능적으로는 Compare 한 정보를 저장 및 가져오는 기능만 생성하였습니다.
-   - SpringBoot 는 익숙하여 사용하였고 구성 패키지는 config, controller, dto, entity, repository, service 로 구성하였습니다. config 에서 CORS 설정 관련 클래스를 만들었으며, dto 와 entity 를 따로 분리하여 관리할 수 있게 구성하였습니다.
-   - 기존에 작업을 할 때는 항상 Mybatis 를 사용하여 쿼리를 직접 작성하여 진행했었으나 이번에는 개발의 속도 향상을 위해 Hibernate 를 이용하여 작업하였습니다.
      
 
   
